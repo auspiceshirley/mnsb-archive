@@ -1,0 +1,307 @@
+---
+// src/components/CookieConsent.astro
+import "@orestbida/iframemanager/dist/iframemanager.css";
+import "vanilla-cookieconsent/dist/cookieconsent.css";
+---
+
+<script>
+  import * as CookieConsent from "vanilla-cookieconsent";
+  import "@orestbida/iframemanager/dist/iframemanager.js";
+
+  (window as any).CookieConsent = CookieConsent;
+
+  function setMarketingConsent(accepted: boolean) {
+    document.cookie = `cc_marketing=${accepted ? "true" : "false"}; path=/; max-age=31536000; SameSite=Lax`;
+  }
+
+  function initCookieConsent() {
+    if (!document.body) return;
+    if (document.querySelector("#cc-main")) return;
+
+    CookieConsent.run({
+      onConsent: () => {
+        const hasMarketing = CookieConsent.acceptedCategory("marketing");
+        const currentCookie = document.cookie.match(
+          /cc_marketing=(true|false)/,
+        )?.[1];
+
+        if (currentCookie === String(hasMarketing)) {
+          return;
+        }
+        setMarketingConsent(hasMarketing);
+        window.dispatchEvent(new CustomEvent("cc:onConsent"));
+        window.dispatchEvent(new CustomEvent("cc:onChange"));
+        window.location.reload();
+      },
+
+      onChange: () => {
+        const hasMarketing = CookieConsent.acceptedCategory("marketing");
+        const currentCookie = document.cookie.match(
+          /cc_marketing=(true|false)/,
+        )?.[1];
+
+        if (currentCookie === String(hasMarketing)) {
+          return;
+        }
+        setMarketingConsent(hasMarketing);
+        window.dispatchEvent(new CustomEvent("cc:onChange"));
+        window.location.reload();
+      },
+      guiOptions: {
+        consentModal: {
+          layout: "box",
+          position: "bottom left",
+          equalWeightButtons: true,
+          flipButtons: false,
+        },
+        preferencesModal: {
+          layout: "bar",
+          position: "left",
+          equalWeightButtons: true,
+          flipButtons: false,
+        },
+      },
+      categories: {
+        necessary: {
+          enabled: true,
+          readOnly: true,
+        },
+        marketing: {
+          enabled: false,
+        },
+      },
+      language: {
+        default: "zh-hans",
+        translations: {
+          "zh-hans": {
+            consentModal: {
+              title: "隐私与 Cookie 设置",
+              description:
+                "为了让第三方内容正常加载，我们需要使用 Cookie。建议您先阅读 <a href='/zh-hans/privacy'><u>隐私政策</u></a> 再作选择。",
+              acceptAllBtn: "同意并继续",
+              acceptNecessaryBtn: "仅必要 Cookie",
+              showPreferencesBtn: "自定义偏好",
+            },
+            preferencesModal: {
+              title: "Cookie 偏好管理",
+              acceptAllBtn: "全部接受",
+              acceptNecessaryBtn: "仅必要 Cookie",
+              savePreferencesBtn: "保存设置",
+              sections: [
+                {
+                  title: "必要 Cookie",
+                  description: "保障网站基本功能，无法禁用。",
+                  linkedCategory: "necessary",
+                },
+                {
+                  title: "第三方嵌入 Cookie",
+                  description:
+                    "用于加载 Bilibili、𝕏（原 Twitter）、YouTube 等第三方内容。拒绝后，相关内容将无法直接播放或显示。",
+                  linkedCategory: "marketing",
+                },
+                {
+                  title: "无 Cookie 统计分析",
+                  description:
+                    "本网站使用 Cloudflare Web Analytics 进行匿名访问统计，以优化体验。该服务不生成、不读取任何 Cookie 或 LocalStorage，也不追踪个人身份。详见 <a href='https://www.cloudflare.com/web-analytics/' target='_blank' rel='noopener noreferrer'><u>Cloudflare 官方说明</u></a>。",
+                },
+                {
+                  title: "隐私政策",
+                  description:
+                    "关于个人信息的详细处理说明，请参阅 <a href='/zh-hans/privacy'><u>隐私政策</u></a>。",
+                },
+              ],
+            },
+          },
+          "zh-hant": {
+            consentModal: {
+              title: "隱私與 Cookie 設定",
+              description:
+                "為了讓第三方內容正常載入，我們需要使用 Cookie。建議您先閱讀 <a href='/zh-hant/privacy'><u>隱私政策</u></a> 再作選擇。",
+              acceptAllBtn: "同意並繼續",
+              acceptNecessaryBtn: "僅必要 Cookie",
+              showPreferencesBtn: "自訂偏好",
+            },
+            preferencesModal: {
+              title: "Cookie 偏好管理",
+              acceptAllBtn: "全部接受",
+              acceptNecessaryBtn: "僅必要 Cookie",
+              savePreferencesBtn: "儲存設定",
+              sections: [
+                {
+                  title: "必要 Cookie",
+                  description: "保障網站基本功能，無法停用。",
+                  linkedCategory: "necessary",
+                },
+                {
+                  title: "第三方嵌入 Cookie",
+                  description:
+                    "用於載入 Bilibili、𝕏（原 Twitter）、YouTube 等第三方內容。拒絕後，相關內容將無法直接播放或顯示。",
+                  linkedCategory: "marketing",
+                },
+                {
+                  title: "無 Cookie 統計分析",
+                  description:
+                    "本網站使用 Cloudflare Web Analytics 進行匿名訪問統計，以最佳化體驗。該服務不產生、不讀取任何 Cookie 或 LocalStorage，也不追蹤個人身份。詳見 <a href='https://www.cloudflare.com/web-analytics/' target='_blank' rel='noopener noreferrer'><u>Cloudflare 官方說明</u></a>。",
+                },
+                {
+                  title: "隱私政策",
+                  description:
+                    "關於個人資訊的詳細處理說明，請參閱 <a href='/zh-hant/privacy'><u>隱私政策</u></a>。",
+                },
+              ],
+            },
+          },
+          en: {
+            consentModal: {
+              title: "Privacy & Cookie Settings",
+              description:
+                "To enable third-party content to load properly, we need to use cookies. We recommend reviewing our <a href='/en/privacy'><u>Privacy Policy</u></a> before making a choice.",
+              acceptAllBtn: "Accept All & Continue",
+              acceptNecessaryBtn: "Necessary Cookies Only",
+              showPreferencesBtn: "Customize Preferences",
+            },
+            preferencesModal: {
+              title: "Cookie Preference Management",
+              acceptAllBtn: "Accept All",
+              acceptNecessaryBtn: "Necessary Only",
+              savePreferencesBtn: "Save Settings",
+              sections: [
+                {
+                  title: "Necessary Cookies",
+                  description:
+                    "Ensure basic website functionality; cannot be disabled.",
+                  linkedCategory: "necessary",
+                },
+                {
+                  title: "Third-Party Embed Cookies",
+                  description:
+                    "Used to load third-party content such as Bilibili, 𝕏 (formerly Twitter), and YouTube. If declined, related content will not play or display directly.",
+                  linkedCategory: "marketing",
+                },
+                {
+                  title: "Cookie-Free Analytics",
+                  description:
+                    "This site uses Cloudflare Web Analytics for anonymous visit statistics to improve experience. This service does not create or read any cookies or LocalStorage, nor does it track personal identity. See <a href='https://www.cloudflare.com/web-analytics/' target='_blank' rel='noopener noreferrer'><u>Cloudflare's official description</u></a>.",
+                },
+                {
+                  title: "Privacy Policy",
+                  description:
+                    "For detailed information on personal data handling, please refer to our <a href='/en/privacy'><u>Privacy Policy</u></a>.",
+                },
+              ],
+            },
+          },
+          ja: {
+            consentModal: {
+              title: "プライバシーとCookie設定",
+              description:
+                "サードパーティコンテンツを正しく読み込むために、Cookieを使用する必要があります。選択する前に、<a href='/ja/privacy'><u>プライバシーポリシー</u></a>をご一読ください。",
+              acceptAllBtn: "すべて同意して続行",
+              acceptNecessaryBtn: "必要なCookieのみ",
+              showPreferencesBtn: "設定をカスタマイズ",
+            },
+            preferencesModal: {
+              title: "Cookie設定の管理",
+              acceptAllBtn: "すべて同意",
+              acceptNecessaryBtn: "必要なもののみ",
+              savePreferencesBtn: "設定を保存",
+              sections: [
+                {
+                  title: "必要なCookie",
+                  description:
+                    "ウェブサイトの基本機能を維持するために必要であり、無効にできません。",
+                  linkedCategory: "necessary",
+                },
+                {
+                  title: "サードパーティ埋め込みCookie",
+                  description:
+                    "Bilibili、𝕏（旧Twitter）、YouTubeなどのサードパーティコンテンツを読み込むために使用されます。拒否すると、関連コンテンツを直接再生または表示できなくなります。",
+                  linkedCategory: "marketing",
+                },
+                {
+                  title: "Cookieなしの統計分析",
+                  description:
+                    "このサイトでは、Cloudflare Web Analyticsを使用して匿名のアクセス統計を収集し、体験を最適化します。このサービスはCookieやLocalStorageを一切生成・読み取りせず、個人を特定しません。詳細は<a href='https://www.cloudflare.com/web-analytics/' target='_blank' rel='noopener noreferrer'><u>Cloudflare公式説明</u></a>をご覧ください。",
+                },
+                {
+                  title: "プライバシーポリシー",
+                  description:
+                    "個人情報の取り扱いに関する詳細は、<a href='/ja/privacy'><u>プライバシーポリシー</u></a>をご参照ください。",
+                },
+              ],
+            },
+          },
+          ko: {
+            consentModal: {
+              title: "개인정보 및 쿠키 설정",
+              description:
+                "타사 콘텐츠를 올바르게 로드하려면 쿠키를 사용해야 합니다. 선택하기 전에 <a href='/ko/privacy'><u>개인정보처리방침</u></a>을 먼저 읽어보시기 바랍니다.",
+              acceptAllBtn: "모두 동의하고 계속",
+              acceptNecessaryBtn: "필수 쿠키만",
+              showPreferencesBtn: "환경 설정 사용자 지정",
+            },
+            preferencesModal: {
+              title: "쿠키 환경 설정 관리",
+              acceptAllBtn: "모두 수락",
+              acceptNecessaryBtn: "필수만",
+              savePreferencesBtn: "설정 저장",
+              sections: [
+                {
+                  title: "필수 쿠키",
+                  description:
+                    "웹사이트 기본 기능을 유지하는 데 필요하며 비활성화할 수 없습니다.",
+                  linkedCategory: "necessary",
+                },
+                {
+                  title: "타사 임베드 쿠키",
+                  description:
+                    "Bilibili, 𝕏(트위터), YouTube 등의 타사 콘텐츠를 로드하는 데 사용됩니다. 거부하면 관련 콘텐츠를 직접 재생하거나 표시할 수 없습니다.",
+                  linkedCategory: "marketing",
+                },
+                {
+                  title: "쿠키 없는 통계 분석",
+                  description:
+                    "이 사이트는 Cloudflare Web Analytics를 사용하여 익명 방문 통계를 수집하고 경험을 최적화합니다. 이 서비스는 쿠키나 LocalStorage를 생성하거나 읽지 않으며 개인을 추적하지 않습니다. 자세한 내용은 <a href='https://www.cloudflare.com/web-analytics/' target='_blank' rel='noopener noreferrer'><u>Cloudflare 공식 설명</u></a>을 참조하세요.",
+                },
+                {
+                  title: "개인정보처리방침",
+                  description:
+                    "개인정보 처리에 대한 자세한 사항은 <a href='/ko/privacy'><u>개인정보처리방침</u></a>을 참조하세요.",
+                },
+              ],
+            },
+          },
+        },
+        autoDetect: "document",
+      },
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCookieConsent);
+  } else {
+    initCookieConsent();
+  }
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+
+      const embedContainer = target.closest(
+        ".astro-embed, .bilibili-wrapper, .twitter-tweet",
+      );
+      if (embedContainer) {
+        const hasConsent = CookieConsent.acceptedCategory("marketing");
+        if (!hasConsent) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          CookieConsent.showPreferences();
+        }
+      }
+    },
+    true,
+  );
+</script>

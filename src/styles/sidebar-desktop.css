@@ -1,0 +1,29 @@
+/* src/styles/sidebar-desktop.css */
+/* Remove sidebar whitespace and background on desktop, keep bottom buttons */
+
+@media (min-width: 50rem) {
+  :root {
+    --sl-sidebar-width: 0rem !important;
+  }
+
+  .header .title-wrapper {
+    width: auto !important;
+  }
+
+  .main-pane {
+    margin-inline-start: 0 !important;
+  }
+
+  .sidebar-pane,
+  aside.sidebar {
+    background-color: transparent !important;
+    border: none !important;
+    width: max-content !important;
+    pointer-events: none !important;
+  }
+
+  .sidebar-pane *,
+  aside.sidebar * {
+    pointer-events: auto !important;
+  }
+}

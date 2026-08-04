@@ -1,0 +1,31 @@
+---
+// src/components/TextMask.astro
+const t = Astro.locals.t as (key: string) => string | undefined;
+const defaultTitle = t?.("textMask.default");
+---
+
+<span class="heimu" title={defaultTitle}>
+  <slot />
+</span>
+
+<style is:global>
+  .heimu {
+    background-color: var(--sl-color-text);
+    color: var(--sl-color-text);
+    border-radius: 2px;
+    padding: 0 3px;
+    transition: color 0.15s ease;
+    cursor: pointer;
+  }
+
+  .heimu:hover,
+  .heimu:focus,
+  .heimu:active {
+    color: var(--sl-color-bg);
+  }
+
+  .heimu::selection {
+    background-color: var(--sl-color-accent);
+    color: var(--sl-color-text-invert, #fff);
+  }
+</style>

@@ -1,0 +1,258 @@
+---
+// src/components/ThirdPartyBlocker.astro
+---
+
+<script is:inline>
+  (function () {
+    function hasMarketingConsent() {
+      return document.cookie
+        .split("; ")
+        .some((row) => row.startsWith("cc_marketing=true"));
+    }
+
+    function isThirdParty(url) {
+      if (!url || typeof url !== "string") return false;
+      try {
+        const fullUrl = url.startsWith("//")
+          ? window.location.protocol + url
+          : url;
+        const u = new URL(fullUrl, window.location.href);
+        return u.hostname !== window.location.hostname;
+      } catch {
+        return false;
+      }
+    }
+
+    const BLOCKED_PLACEHOLDER =
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f8f9fa'/%3E%3Ctext x='200' y='140' font-size='14' fill='%23495057' text-anchor='middle' font-family='sans-serif'%3EView this content requires%3C/text%3E%3Ctext x='200' y='160' font-size='14' fill='%23495057' text-anchor='middle' font-family='sans-serif'%3Ethird-party cookies consent.%3C/text%3E%3C/svg%3E";
+
+    if (!hasMarketingConsent()) {
+      const imgProto = HTMLImageElement.prototype;
+      const imgDesc = Object.getOwnPropertyDescriptor(imgProto, "src");
+      if (imgDesc?.set) {
+        Object.defineProperty(imgProto, "src", {
+          get: imgDesc.get,
+          set: function (value) {
+            if (isThirdParty(value)) {
+              this.setAttribute("data-blocked", "true");
+              this.setAttribute("src", BLOCKED_PLACEHOLDER);
+              return;
+            }
+            imgDesc.set.call(this, value);
+          },
+          configurable: true,
+        });
+      }
+
+      const scriptProto = HTMLScriptElement.prototype;
+      const scriptDesc = Object.getOwnPropertyDescriptor(scriptProto, "src");
+      if (scriptDesc?.set) {
+        Object.defineProperty(scriptProto, "src", {
+          get: scriptDesc.get,
+          set: function (value) {
+            if (isThirdParty(value)) {
+              value = "blocked-" + value;
+            }
+            scriptDesc.set.call(this, value);
+          },
+          configurable: true,
+        });
+      }
+
+      const iframeProto = HTMLIFrameElement.prototype;
+      const iframeDesc = Object.getOwnPropertyDescriptor(iframeProto, "src");
+      if (iframeDesc?.set) {
+        Object.defineProperty(iframeProto, "src", {
+          get: iframeDesc.get,
+          set: function (value) {
+            if (isThirdParty(value)) {
+              value = "blocked-" + value;
+            }
+            iframeDesc.set.call(this, value);
+          },
+          configurable: true,
+        });
+      }
+
+      const linkProto = HTMLLinkElement.prototype;
+      const linkDesc = Object.getOwnPropertyDescriptor(linkProto, "href");
+      if (linkDesc?.set) {
+        Object.defineProperty(linkProto, "href", {
+          get: linkDesc.get,
+          set: function (value) {
+            if (isThirdParty(value)) {
+              value = "blocked-" + value;
+            }
+            linkDesc.set.call(this, value);
+          },
+          configurable: true,
+        });
+      }
+
+      const OriginalImage = window.Image;
+      window.Image = function (width, height) {
+        const img = new OriginalImage(width, height);
+        const desc = Object.getOwnPropertyDescriptor(
+          HTMLImageElement.prototype,
+          "src",
+        );
+        if (desc?.set) {
+          Object.defineProperty(img, "src", {
+            get: desc.get,
+            set: function (value) {
+              if (isThirdParty(value)) {
+                this.setAttribute("data-blocked", "true");
+                this.setAttribute("src", BLOCKED_PLACEHOLDER);
+                return;
+              }
+              desc.set.call(this, value);
+            },
+            configurable: true,
+          });
+        }
+        return img;
+      };
+
+      const originalFetch = window.fetch;
+      window.fetch = function (input, init) {
+        const url = typeof input === "string" ? input : input.url;
+        if (isThirdParty(url)) {
+          return Promise.reject(
+            new Error("Third-party request blocked due to cookie consent."),
+          );
+        }
+        return originalFetch.call(this, input, init);
+      };
+
+      const XHR = window.XMLHttpRequest;
+      const originalOpen = XHR.prototype.open;
+      XHR.prototype.open = function (method, url, ...args) {
+        if (isThirdParty(url)) {
+          throw new Error("Third-party request blocked due to cookie consent.");
+        }
+        return originalOpen.call(this, method, url, ...args);
+      };
+
+      const origCreateElement = document.createElement;
+      document.createElement = function (tagName, options) {
+        const el = origCreateElement.call(document, tagName, options);
+        const tag = tagName.toLowerCase();
+
+        if (tag === "img") {
+          const desc = Object.getOwnPropertyDescriptor(
+            el.constructor.prototype,
+            "src",
+          );
+          if (desc?.set) {
+            Object.defineProperty(el, "src", {
+              get: desc.get,
+              set: function (value) {
+                if (isThirdParty(value)) {
+                  this.setAttribute("data-blocked", "true");
+                  this.setAttribute("src", BLOCKED_PLACEHOLDER);
+                  return;
+                }
+                desc.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+        } else if (["script", "iframe", "link"].includes(tag)) {
+          const attr = tag === "link" ? "href" : "src";
+          const desc = Object.getOwnPropertyDescriptor(
+            el.constructor.prototype,
+            attr,
+          );
+          if (desc?.set) {
+            Object.defineProperty(el, attr, {
+              get: desc.get,
+              set: function (value) {
+                if (isThirdParty(value)) {
+                  value = "blocked-" + value;
+                }
+                desc.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+        }
+        return el;
+      };
+
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) {
+              const tag = node.tagName.toLowerCase();
+
+              if (tag === "img") {
+                const src = node.getAttribute("src");
+                if (src && isThirdParty(src)) {
+                  node.setAttribute("data-blocked", "true");
+                  node.setAttribute("src", BLOCKED_PLACEHOLDER);
+                }
+              } else if (["script", "iframe", "link"].includes(tag)) {
+                const attr = tag === "link" ? "href" : "src";
+                const val = node.getAttribute(attr);
+                if (val && isThirdParty(val)) {
+                  node.setAttribute(attr, "blocked-" + val);
+                }
+              }
+
+              if (node.querySelectorAll) {
+                node.querySelectorAll("img[src]").forEach((el) => {
+                  const src = el.getAttribute("src");
+                  if (src && isThirdParty(src)) {
+                    el.setAttribute("data-blocked", "true");
+                    el.setAttribute("src", BLOCKED_PLACEHOLDER);
+                  }
+                });
+
+                node
+                  .querySelectorAll("script[src], iframe[src], link[href]")
+                  .forEach((el) => {
+                    const attr =
+                      el.tagName.toLowerCase() === "link" ? "href" : "src";
+                    const val = el.getAttribute(attr);
+                    if (val && isThirdParty(val)) {
+                      el.setAttribute(attr, "blocked-" + val);
+                    }
+                  });
+              }
+            }
+          });
+        });
+      });
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+
+      document.addEventListener("readystatechange", function handler() {
+        if (
+          document.readyState === "interactive" ||
+          document.readyState === "complete"
+        ) {
+          document.querySelectorAll("img[src]").forEach((el) => {
+            const src = el.getAttribute("src");
+            if (src && isThirdParty(src)) {
+              el.setAttribute("data-blocked", "true");
+              el.setAttribute("src", BLOCKED_PLACEHOLDER);
+            }
+          });
+
+          document
+            .querySelectorAll("script[src], iframe[src], link[href]")
+            .forEach((el) => {
+              const attr = el.tagName.toLowerCase() === "link" ? "href" : "src";
+              const val = el.getAttribute(attr);
+              if (val && isThirdParty(val)) {
+                el.setAttribute(attr, "blocked-" + val);
+              }
+            });
+          document.removeEventListener("readystatechange", handler);
+        }
+      });
+    }
+  })();
+</script>

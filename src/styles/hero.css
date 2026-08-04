@@ -1,0 +1,39 @@
+/* src/styles/hero.css */
+/* Hero section layout */
+
+.hero {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 1.5rem !important;
+}
+
+.hero .stack,
+.hero .copy {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.hero h1,
+.hero .tagline {
+  text-align: center !important;
+  width: auto !important;
+}
+
+.hero .actions {
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.hero .hero-image,
+.hero .hero-image picture,
+.hero .hero-image img,
+.hero picture,
+.hero img {
+  order: -1 !important;
+}

@@ -1,0 +1,30 @@
+---
+// src/components/MasonryGrid.astro
+const { class: className = "" } = Astro.props;
+---
+
+<div class:list={["masonry-grid", className]}>
+  <slot />
+</div>
+
+<style>
+  .masonry-grid {
+    column-count: 2;
+    column-gap: 1em;
+    width: 100%;
+  }
+
+  .masonry-grid :global(> *) {
+    break-inside: avoid;
+    margin-bottom: 1em;
+    width: 100% !important;
+    display: inline-block;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 640px) {
+    .masonry-grid {
+      column-count: 1;
+    }
+  }
+</style>

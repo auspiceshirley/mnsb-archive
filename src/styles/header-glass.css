@@ -1,0 +1,12 @@
+/* src/styles/header-glass.css */
+/* Header glassmorphism (blur) */
+
+header.header {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+}
+
+:root[data-theme="dark"] header.header {
+  background-color: rgba(18, 19, 20, 0.5) !important;
+}

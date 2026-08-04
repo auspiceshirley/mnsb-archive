@@ -1,0 +1,49 @@
+---
+// src/components/SocialIcons.astro
+import Default from "@astrojs/starlight/components/SocialIcons.astro";
+import Icon from "./Icon.astro";
+
+const rawLocale = Astro.currentLocale || "zh-hans";
+const currentLocale = rawLocale.toLowerCase();
+const homeUrl = `/${currentLocale}/`;
+const indexUrl = `/${currentLocale}/home/`;
+const aboutUrl = `/${currentLocale}/about/`;
+const copyrightUrl = `/${currentLocale}/copyright`;
+---
+
+<Default><slot /></Default>
+
+<div class="custom-header-links">
+  <a href={homeUrl} title="Home Page"><Icon name="mdi:home" /></a>
+  <a href={indexUrl} title="Index Page"><Icon name="mdi:format-list-bulleted" /></a>
+  <a href={copyrightUrl} title="Copyright Notice"><Icon name="mdi:copyright" /></a>
+  <a href={aboutUrl} title="About"><Icon name="mdi:about-circle-outline" /></a>
+  <a href="https://me.auspiceshirley.dev" title="Shirley Auspice"><Icon name="mdi:account-circle" /></a>
+</div>
+
+<style>
+  .custom-header-links {
+    display: flex;
+    align-items: center;
+  }
+
+  .custom-header-links a {
+    color: var(--sl-color-gray-1);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: var(--sl-text-sm);
+    transition:
+      opacity 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .custom-header-links a :global(svg) {
+    fill: currentColor;
+    color: currentColor;
+  }
+
+  .custom-header-links a:hover {
+    color: var(--sl-color-white);
+    opacity: 0.8;
+  }
+</style>

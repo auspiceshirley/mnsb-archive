@@ -1,0 +1,124 @@
+---
+// src/components/TwitterWidgets.astro
+---
+
+<script is:inline>
+  let observer = null;
+  let sdkPromise = null;
+  let isListenerAdded = false;
+
+  function hasConsent() {
+    return (
+      typeof window.CookieConsent !== "undefined" &&
+      window.CookieConsent.acceptedCategory("marketing")
+    );
+  }
+
+  function loadTwitterSDK() {
+    if (!hasConsent()) {
+      return Promise.reject(new Error("Twitter SDK blocked by consent"));
+    }
+    if (window.twttr && window.twttr.widgets) {
+      return Promise.resolve(window.twttr);
+    }
+    if (sdkPromise) return sdkPromise;
+
+    sdkPromise = new Promise((resolve, reject) => {
+      const existing = document.getElementById("twitter-wjs");
+      if (existing) {
+        let attempts = 0;
+        const check = setInterval(() => {
+          attempts++;
+          if (window.twttr && window.twttr.ready) {
+            clearInterval(check);
+            window.twttr.ready(() => resolve(window.twttr));
+          } else if (attempts >= 100) {
+            clearInterval(check);
+            sdkPromise = null;
+            reject(new Error("Twitter SDK timeout"));
+          }
+        }, 50);
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = "twitter-wjs";
+      script.src = "https://platform.twitter.com/widgets.js";
+      script.async = true;
+      script.onload = () => {
+        if (window.twttr && typeof window.twttr.ready === "function") {
+          window.twttr.ready(() => resolve(window.twttr));
+        } else {
+          resolve(window.twttr);
+        }
+      };
+      script.onerror = () => {
+        sdkPromise = null;
+        reject(new Error("Failed to load Twitter SDK"));
+      };
+      document.head.appendChild(script);
+    });
+
+    return sdkPromise;
+  }
+
+  function renderTweets() {
+    if (!hasConsent()) return;
+
+    const tweets = document.querySelectorAll(
+      "blockquote.twitter-tweet:not([data-rendered])",
+    );
+    if (!tweets.length) return;
+
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            observer.unobserve(el);
+            el.setAttribute("data-rendered", "true");
+
+            loadTwitterSDK()
+              .then((twttr) => {
+                if (
+                  twttr &&
+                  twttr.widgets &&
+                  typeof twttr.widgets.load === "function"
+                ) {
+                  twttr.widgets.load(el);
+                }
+              })
+              .catch((err) => {
+                console.warn("Twitter embed failed:", err);
+                el.removeAttribute("data-rendered");
+              });
+          }
+        });
+      },
+      { rootMargin: "300px" },
+    );
+
+    tweets.forEach((tweet) => observer.observe(tweet));
+  }
+
+  if (!isListenerAdded) {
+    isListenerAdded = true;
+    document.addEventListener("astro:page-load", renderTweets);
+    window.addEventListener("cc:onConsent", renderTweets);
+    window.addEventListener("cc:onChange", renderTweets);
+  }
+
+  if (
+    document.readyState === "complete" ||
+    document.readyState === "interactive"
+  ) {
+    renderTweets();
+  } else {
+    document.addEventListener("DOMContentLoaded", renderTweets, { once: true });
+  }
+</script>

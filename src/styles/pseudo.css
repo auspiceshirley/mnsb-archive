@@ -1,0 +1,9 @@
+/* src/styles/pseudo.css */
+/* Hide site title pseudo-elements */
+
+.site-title::before,
+.site-title a::before,
+a.site-title::before {
+  display: none !important;
+  content: none !important;
+}

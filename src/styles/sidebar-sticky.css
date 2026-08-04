@@ -1,0 +1,12 @@
+/* src/styles/sidebar-sticky.css */
+/* Sticky sidebar summary headers */
+
+starlight-sidebar details > summary,
+.sidebar-content details > summary {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background-color: var(--sl-color-bg-sidebar, var(--sl-color-bg)) !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
