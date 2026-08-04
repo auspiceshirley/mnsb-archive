@@ -6,8 +6,6 @@ import CookieConsent from "./CookieConsent.astro";
 import TwitterWidgets from "./TwitterWidgets.astro";
 ---
 
-<Default {...Astro.props}><slot /></Default>
-
 <ThirdPartyBlocker />
 
 <TwitterWidgets />
@@ -15,3 +13,5 @@ import TwitterWidgets from "./TwitterWidgets.astro";
 <CookieConsent />
 
 <script src="../scripts/external-links.ts"></script>
+
+<Default {...Astro.props}><slot /></Default>

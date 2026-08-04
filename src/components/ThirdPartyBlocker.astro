@@ -5,26 +5,61 @@
 <script is:inline>
   (function () {
     function hasMarketingConsent() {
-      return document.cookie
-        .split("; ")
-        .some((row) => row.startsWith("cc_marketing=true"));
+      return /(^|;)\s*cc_marketing=true\s*($|;)/.test(document.cookie);
     }
 
     function isThirdParty(url) {
-      if (!url || typeof url !== "string") return false;
+      if (!url) return false;
+
+      let urlStr = url;
+      if (typeof url === "object") {
+        urlStr = url.url || url.href || url.toString();
+      }
+      if (typeof urlStr !== "string") return false;
+
+      if (urlStr.startsWith("blob:")) {
+        urlStr = urlStr.slice(5);
+      }
+
+      if (
+        urlStr.startsWith("data:") ||
+        urlStr.startsWith("about:") ||
+        urlStr.startsWith("javascript:")
+      ) {
+        return false;
+      }
+
       try {
-        const fullUrl = url.startsWith("//")
-          ? window.location.protocol + url
-          : url;
-        const u = new URL(fullUrl, window.location.href);
-        return u.hostname !== window.location.hostname;
+        const fullUrl = urlStr.startsWith("//")
+          ? window.location.protocol + urlStr
+          : urlStr;
+        const u = new URL(fullUrl, document.baseURI);
+        return u.origin !== window.location.origin;
       } catch {
         return false;
       }
     }
 
+    function isSrcsetThirdParty(srcsetValue) {
+      if (!srcsetValue) return false;
+      const urls = srcsetValue
+        .split(",")
+        .map((part) => part.trim().split(/\s+/)[0])
+        .filter(Boolean);
+      return urls.some((url) => isThirdParty(url));
+    }
+
     const BLOCKED_PLACEHOLDER =
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f8f9fa'/%3E%3Ctext x='200' y='140' font-size='14' fill='%23495057' text-anchor='middle' font-family='sans-serif'%3EView this content requires%3C/text%3E%3Ctext x='200' y='160' font-size='14' fill='%23495057' text-anchor='middle' font-family='sans-serif'%3Ethird-party cookies consent.%3C/text%3E%3C/svg%3E";
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f8f9fa'/%3E%3Ctext x='200' y='140' font-size='14' fill='%23495057' text-anchor='middle' font-family='sans-serif'%3EViewing this content requires%3C/text%3E%3Ctext x='200' y='160' font-size='14' fill='%23495057' text-anchor='middle' font-family='sans-serif'%3Ethird-party cookies consent.%3C/text%3E%3C/svg%3E";
+
+    function blockResource(el, attr) {
+      const tag = el.tagName.toLowerCase();
+      if (tag === "iframe") {
+        el.setAttribute(attr, "about:blank");
+      } else {
+        el.removeAttribute(attr);
+      }
+    }
 
     if (!hasMarketingConsent()) {
       const imgProto = HTMLImageElement.prototype;
@@ -44,6 +79,20 @@
         });
       }
 
+      const srcsetDesc = Object.getOwnPropertyDescriptor(imgProto, "srcset");
+      if (srcsetDesc?.set) {
+        Object.defineProperty(imgProto, "srcset", {
+          get: srcsetDesc.get,
+          set: function (value) {
+            if (value && isSrcsetThirdParty(value)) {
+              return;
+            }
+            srcsetDesc.set.call(this, value);
+          },
+          configurable: true,
+        });
+      }
+
       const scriptProto = HTMLScriptElement.prototype;
       const scriptDesc = Object.getOwnPropertyDescriptor(scriptProto, "src");
       if (scriptDesc?.set) {
@@ -51,7 +100,8 @@
           get: scriptDesc.get,
           set: function (value) {
             if (isThirdParty(value)) {
-              value = "blocked-" + value;
+              blockResource(this, "src");
+              return;
             }
             scriptDesc.set.call(this, value);
           },
@@ -66,7 +116,8 @@
           get: iframeDesc.get,
           set: function (value) {
             if (isThirdParty(value)) {
-              value = "blocked-" + value;
+              blockResource(this, "src");
+              return;
             }
             iframeDesc.set.call(this, value);
           },
@@ -81,7 +132,8 @@
           get: linkDesc.get,
           set: function (value) {
             if (isThirdParty(value)) {
-              value = "blocked-" + value;
+              blockResource(this, "href");
+              return;
             }
             linkDesc.set.call(this, value);
           },
@@ -92,10 +144,7 @@
       const OriginalImage = window.Image;
       window.Image = function (width, height) {
         const img = new OriginalImage(width, height);
-        const desc = Object.getOwnPropertyDescriptor(
-          HTMLImageElement.prototype,
-          "src",
-        );
+        const desc = Object.getOwnPropertyDescriptor(imgProto, "src");
         if (desc?.set) {
           Object.defineProperty(img, "src", {
             get: desc.get,
@@ -110,15 +159,69 @@
             configurable: true,
           });
         }
+
+        const srcsetDescImg = Object.getOwnPropertyDescriptor(
+          imgProto,
+          "srcset",
+        );
+        if (srcsetDescImg?.set) {
+          Object.defineProperty(img, "srcset", {
+            get: srcsetDescImg.get,
+            set: function (value) {
+              if (value && isSrcsetThirdParty(value)) {
+                return;
+              }
+              srcsetDescImg.set.call(this, value);
+            },
+            configurable: true,
+          });
+        }
         return img;
+      };
+
+      const origSetAttribute = Element.prototype.setAttribute;
+      Element.prototype.setAttribute = function (name, value) {
+        const attrName = name.toLowerCase();
+
+        if (attrName === "srcset") {
+          if (isSrcsetThirdParty(value)) {
+            if (this.tagName.toLowerCase() === "img") {
+              this.setAttribute("data-blocked", "true");
+            }
+            return;
+          }
+          return origSetAttribute.call(this, name, value);
+        }
+
+        if (["src", "href", "data"].includes(attrName)) {
+          if (isThirdParty(value)) {
+            const tag = this.tagName.toLowerCase();
+            if (tag === "iframe") {
+              return origSetAttribute.call(this, name, "about:blank");
+            }
+            if (tag === "img") {
+              this.setAttribute("data-blocked", "true");
+              return origSetAttribute.call(this, name, BLOCKED_PLACEHOLDER);
+            }
+            return;
+          }
+        }
+        return origSetAttribute.call(this, name, value);
       };
 
       const originalFetch = window.fetch;
       window.fetch = function (input, init) {
-        const url = typeof input === "string" ? input : input.url;
+        let url = input;
+        if (input instanceof Request) {
+          url = input.url;
+        } else if (input instanceof URL) {
+          url = input.href;
+        } else if (typeof input === "object" && input !== null) {
+          url = input.url || input.href || String(input);
+        }
         if (isThirdParty(url)) {
           return Promise.reject(
-            new Error("Third-party request blocked due to cookie consent."),
+            new Error("Third-party fetch blocked due to cookie consent."),
           );
         }
         return originalFetch.call(this, input, init);
@@ -127,11 +230,80 @@
       const XHR = window.XMLHttpRequest;
       const originalOpen = XHR.prototype.open;
       XHR.prototype.open = function (method, url, ...args) {
-        if (isThirdParty(url)) {
-          throw new Error("Third-party request blocked due to cookie consent.");
+        const urlStr = url instanceof URL ? url.href : url;
+        if (isThirdParty(urlStr)) {
+          throw new Error("Third-party XHR blocked due to cookie consent.");
         }
         return originalOpen.call(this, method, url, ...args);
       };
+
+      if (navigator.sendBeacon) {
+        const origBeacon = navigator.sendBeacon;
+        navigator.sendBeacon = function (url, data) {
+          if (isThirdParty(url)) {
+            console.warn("[ThirdPartyBlocker] sendBeacon blocked:", url);
+            return false;
+          }
+          return origBeacon.call(navigator, url, data);
+        };
+      }
+
+      const OriginalWebSocket = window.WebSocket;
+      window.WebSocket = function (url, protocols) {
+        if (isThirdParty(url)) {
+          throw new Error(
+            "Third-party WebSocket blocked due to cookie consent.",
+          );
+        }
+        if (arguments.length > 1) {
+          return new OriginalWebSocket(url, protocols);
+        }
+        return new OriginalWebSocket(url);
+      };
+
+      const OriginalWorker = window.Worker;
+      window.Worker = function (url, options) {
+        if (isThirdParty(url)) {
+          throw new Error("Third-party Worker blocked due to cookie consent.");
+        }
+        if (arguments.length > 1) {
+          return new OriginalWorker(url, options);
+        }
+        return new OriginalWorker(url);
+      };
+
+      if (window.EventSource) {
+        const OriginalEventSource = window.EventSource;
+        window.EventSource = function (url, config) {
+          if (isThirdParty(url)) {
+            throw new Error(
+              "Third-party EventSource blocked due to cookie consent.",
+            );
+          }
+          if (arguments.length > 1) {
+            return new OriginalEventSource(url, config);
+          }
+          return new OriginalEventSource(url);
+        };
+      }
+
+      if (window.HTMLMediaElement) {
+        const mediaProto = HTMLMediaElement.prototype;
+        const mediaDesc = Object.getOwnPropertyDescriptor(mediaProto, "src");
+        if (mediaDesc?.set) {
+          Object.defineProperty(mediaProto, "src", {
+            get: mediaDesc.get,
+            set: function (value) {
+              if (isThirdParty(value)) {
+                blockResource(this, "src");
+                return;
+              }
+              mediaDesc.set.call(this, value);
+            },
+            configurable: true,
+          });
+        }
+      }
 
       const origCreateElement = document.createElement;
       document.createElement = function (tagName, options) {
@@ -139,10 +311,7 @@
         const tag = tagName.toLowerCase();
 
         if (tag === "img") {
-          const desc = Object.getOwnPropertyDescriptor(
-            el.constructor.prototype,
-            "src",
-          );
+          const desc = Object.getOwnPropertyDescriptor(imgProto, "src");
           if (desc?.set) {
             Object.defineProperty(el, "src", {
               get: desc.get,
@@ -153,6 +322,22 @@
                   return;
                 }
                 desc.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+          const srcsetDescEl = Object.getOwnPropertyDescriptor(
+            imgProto,
+            "srcset",
+          );
+          if (srcsetDescEl?.set) {
+            Object.defineProperty(el, "srcset", {
+              get: srcsetDescEl.get,
+              set: function (value) {
+                if (value && isSrcsetThirdParty(value)) {
+                  return;
+                }
+                srcsetDescEl.set.call(this, value);
               },
               configurable: true,
             });
@@ -168,9 +353,80 @@
               get: desc.get,
               set: function (value) {
                 if (isThirdParty(value)) {
-                  value = "blocked-" + value;
+                  blockResource(this, attr);
+                  return;
                 }
                 desc.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+        } else if (tag === "source") {
+          const srcDesc = Object.getOwnPropertyDescriptor(
+            el.constructor.prototype,
+            "src",
+          );
+          if (srcDesc?.set) {
+            Object.defineProperty(el, "src", {
+              get: srcDesc.get,
+              set: function (value) {
+                if (isThirdParty(value)) {
+                  blockResource(this, "src");
+                  return;
+                }
+                srcDesc.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+          const srcsetDescSource = Object.getOwnPropertyDescriptor(
+            el.constructor.prototype,
+            "srcset",
+          );
+          if (srcsetDescSource?.set) {
+            Object.defineProperty(el, "srcset", {
+              get: srcsetDescSource.get,
+              set: function (value) {
+                if (value && isSrcsetThirdParty(value)) {
+                  return;
+                }
+                srcsetDescSource.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+        } else if (tag === "object") {
+          const dataDesc = Object.getOwnPropertyDescriptor(
+            el.constructor.prototype,
+            "data",
+          );
+          if (dataDesc?.set) {
+            Object.defineProperty(el, "data", {
+              get: dataDesc.get,
+              set: function (value) {
+                if (isThirdParty(value)) {
+                  blockResource(this, "data");
+                  return;
+                }
+                dataDesc.set.call(this, value);
+              },
+              configurable: true,
+            });
+          }
+        } else if (tag === "embed") {
+          const srcDescEmbed = Object.getOwnPropertyDescriptor(
+            el.constructor.prototype,
+            "src",
+          );
+          if (srcDescEmbed?.set) {
+            Object.defineProperty(el, "src", {
+              get: srcDescEmbed.get,
+              set: function (value) {
+                if (isThirdParty(value)) {
+                  blockResource(this, "src");
+                  return;
+                }
+                srcDescEmbed.set.call(this, value);
               },
               configurable: true,
             });
@@ -179,80 +435,101 @@
         return el;
       };
 
+      function processElement(el) {
+        const tag = el.tagName.toLowerCase();
+        if (tag === "img") {
+          const src = el.getAttribute("src");
+          if (src && isThirdParty(src)) {
+            el.setAttribute("data-blocked", "true");
+            el.setAttribute("src", BLOCKED_PLACEHOLDER);
+          }
+          const srcset = el.getAttribute("srcset");
+          if (srcset && isSrcsetThirdParty(srcset)) {
+            el.removeAttribute("srcset");
+          }
+        } else if (["script", "iframe", "link"].includes(tag)) {
+          const attr = tag === "link" ? "href" : "src";
+          const val = el.getAttribute(attr);
+          if (val && isThirdParty(val)) {
+            blockResource(el, attr);
+          }
+        } else if (tag === "source") {
+          const src = el.getAttribute("src");
+          if (src && isThirdParty(src)) {
+            blockResource(el, "src");
+          }
+          const srcset = el.getAttribute("srcset");
+          if (srcset && isSrcsetThirdParty(srcset)) {
+            el.removeAttribute("srcset");
+          }
+        } else if (["video", "audio"].includes(tag)) {
+          const src = el.getAttribute("src");
+          if (src && isThirdParty(src)) {
+            blockResource(el, "src");
+          }
+        } else if (tag === "object") {
+          const data = el.getAttribute("data");
+          if (data && isThirdParty(data)) {
+            blockResource(el, "data");
+          }
+        } else if (tag === "embed") {
+          const src = el.getAttribute("src");
+          if (src && isThirdParty(src)) {
+            blockResource(el, "src");
+          }
+        }
+      }
+
+      function scanAndBlock(root = document) {
+        const selector = [
+          "img[src]",
+          "img[srcset]",
+          "script[src]",
+          "iframe[src]",
+          "link[href]",
+          "source[src]",
+          "source[srcset]",
+          "video[src]",
+          "audio[src]",
+          "object[data]",
+          "embed[src]",
+        ].join(",");
+        root.querySelectorAll(selector).forEach(processElement);
+      }
+
       const observer = new MutationObserver((mutations) => {
+        const addedNodes = [];
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === 1) {
-              const tag = node.tagName.toLowerCase();
-
-              if (tag === "img") {
-                const src = node.getAttribute("src");
-                if (src && isThirdParty(src)) {
-                  node.setAttribute("data-blocked", "true");
-                  node.setAttribute("src", BLOCKED_PLACEHOLDER);
-                }
-              } else if (["script", "iframe", "link"].includes(tag)) {
-                const attr = tag === "link" ? "href" : "src";
-                const val = node.getAttribute(attr);
-                if (val && isThirdParty(val)) {
-                  node.setAttribute(attr, "blocked-" + val);
-                }
-              }
-
-              if (node.querySelectorAll) {
-                node.querySelectorAll("img[src]").forEach((el) => {
-                  const src = el.getAttribute("src");
-                  if (src && isThirdParty(src)) {
-                    el.setAttribute("data-blocked", "true");
-                    el.setAttribute("src", BLOCKED_PLACEHOLDER);
-                  }
-                });
-
-                node
-                  .querySelectorAll("script[src], iframe[src], link[href]")
-                  .forEach((el) => {
-                    const attr =
-                      el.tagName.toLowerCase() === "link" ? "href" : "src";
-                    const val = el.getAttribute(attr);
-                    if (val && isThirdParty(val)) {
-                      el.setAttribute(attr, "blocked-" + val);
-                    }
-                  });
-              }
-            }
+            if (node.nodeType === 1) addedNodes.push(node);
           });
         });
+        if (addedNodes.length === 0) return;
+
+        addedNodes.forEach((node) => {
+          processElement(node);
+          const selector = [
+            "img[src]",
+            "img[srcset]",
+            "script[src]",
+            "iframe[src]",
+            "link[href]",
+            "source[src]",
+            "source[srcset]",
+            "video[src]",
+            "audio[src]",
+            "object[data]",
+            "embed[src]",
+          ].join(",");
+          node.querySelectorAll(selector).forEach(processElement);
+        });
       });
+
       observer.observe(document.documentElement, {
         childList: true,
         subtree: true,
       });
-
-      document.addEventListener("readystatechange", function handler() {
-        if (
-          document.readyState === "interactive" ||
-          document.readyState === "complete"
-        ) {
-          document.querySelectorAll("img[src]").forEach((el) => {
-            const src = el.getAttribute("src");
-            if (src && isThirdParty(src)) {
-              el.setAttribute("data-blocked", "true");
-              el.setAttribute("src", BLOCKED_PLACEHOLDER);
-            }
-          });
-
-          document
-            .querySelectorAll("script[src], iframe[src], link[href]")
-            .forEach((el) => {
-              const attr = el.tagName.toLowerCase() === "link" ? "href" : "src";
-              const val = el.getAttribute(attr);
-              if (val && isThirdParty(val)) {
-                el.setAttribute(attr, "blocked-" + val);
-              }
-            });
-          document.removeEventListener("readystatechange", handler);
-        }
-      });
+      scanAndBlock();
     }
   })();
 </script>
