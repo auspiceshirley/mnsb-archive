@@ -160,13 +160,9 @@ const useLite = lite && videoData && !errorMessage;
           tabindex="0"
           aria-label="Play video"
         >
-          <img
-            class="cover-image"
-            src={coverUrl}
-            alt={videoTitle}
-            loading="lazy"
-            referrerpolicy="no-referrer"
-          />
+          <div class="cover-image" data-src={coverUrl} data-alt={videoTitle}>
+            Image preview requires accepting third-party cookies.
+          </div>
           <div class="gradient-overlay" />
           <div class="info-bottom">
             <div class="title">{videoTitle}</div>
@@ -179,12 +175,10 @@ const useLite = lite && videoData && !errorMessage;
                 onclick="event.stopPropagation();"
               >
                 {ownerFace && (
-                  <img
+                  <span
                     class="avatar"
-                    src={ownerFace}
-                    alt={ownerName}
-                    loading="lazy"
-                    referrerpolicy="no-referrer"
+                    data-src={ownerFace}
+                    data-alt={ownerName}
                   />
                 )}
                 <span class="name">{ownerName}</span>
@@ -274,7 +268,7 @@ const useLite = lite && videoData && !errorMessage;
     display: block;
     width: 100%;
     aspect-ratio: 16 / 9;
-    background-color: var(--astro-embed-bg, #18181b);
+    background-color: var(--link-preview-placeholder-bg, rgba(0, 0, 0, 0.05));
     overflow: hidden;
     contain: layout style;
     height: auto;
@@ -340,21 +334,40 @@ const useLite = lite && videoData && !errorMessage;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #000;
+    background: transparent;
   }
 
-  .lite-mode .cover-image {
+  .lite-mode :global(div.cover-image) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--link-preview-placeholder-color, #666);
+    font-size: 0.85rem;
+    background-color: var(--link-preview-placeholder-bg, rgba(0, 0, 0, 0.05));
+  }
+
+  .lite-mode :global(img.cover-image) {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
+    padding: 0 !important;
     margin: 0 !important;
+    border: none;
+    transition: transform 0.3s ease;
   }
 
-  .lite-mode .lite-preview:hover .cover-image {
+  .lite-mode .lite-preview:hover :global(.cover-image) {
     transform: scale(1.03);
   }
 
@@ -410,7 +423,7 @@ const useLite = lite && videoData && !errorMessage;
     text-decoration: underline;
   }
 
-  .lite-mode .avatar {
+  .lite-mode :global(.avatar) {
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -490,7 +503,7 @@ const useLite = lite && videoData && !errorMessage;
       width: 56px;
       height: 40px;
     }
-    .lite-mode .avatar {
+    .lite-mode :global(.avatar) {
       width: 20px;
       height: 20px;
     }

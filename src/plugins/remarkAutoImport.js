@@ -8,14 +8,15 @@ export function remarkAutoImport() {
 
     const importStatements = `
       import { Aside, Badge, CardGrid, Code, FileTree, LinkButton, LinkCard, Steps, TabItem, Tabs } from "@astrojs/starlight/components";
-      import MasonryGrid from '/src/components/MasonryGrid.astro';
+      import MasonryGrid from "/src/components/MasonryGrid.astro";
+      import LinkPreview from "/src/components/LinkPreview.astro";
       import Bilibili from "/src/components/Bilibili.astro";
-      import ColorBar from '/src/components/ColorBar.astro';
+      import ColorBar from "/src/components/ColorBar.astro";
       import TextMask from "/src/components/TextMask.astro";
       import YouTube from "/src/components/YouTube.astro";
-      import { Tweet, LinkPreview } from "astro-embed";
       import Card from "/src/components/Card.astro";
       import Icon from "/src/components/Icon.astro";
+      import { Tweet } from "astro-embed";
     `;
 
     const estree = parse(importStatements, {

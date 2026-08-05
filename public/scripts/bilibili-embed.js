@@ -8,7 +8,45 @@
     );
   }
 
+  function loadBilibiliPreviews() {
+    if (!hasConsent()) return;
+
+    document
+      .querySelectorAll(".astro-embed-bilibili .cover-image[data-src]")
+      .forEach(function (el) {
+        var src = el.getAttribute("data-src");
+        if (!src) return;
+
+        var img = document.createElement("img");
+        img.className = "cover-image";
+        img.src = src;
+        img.alt = el.getAttribute("data-alt") || "";
+        img.loading = "lazy";
+        img.referrerPolicy = "no-referrer";
+
+        el.replaceWith(img);
+      });
+
+    document
+      .querySelectorAll(".astro-embed-bilibili .avatar[data-src]")
+      .forEach(function (el) {
+        var src = el.getAttribute("data-src");
+        if (!src) return;
+
+        var img = document.createElement("img");
+        img.className = "avatar";
+        img.src = src;
+        img.alt = el.getAttribute("data-alt") || "";
+        img.loading = "lazy";
+        img.referrerPolicy = "no-referrer";
+
+        el.replaceWith(img);
+      });
+  }
+
   function initBilibiliEmbeds() {
+    loadBilibiliPreviews();
+
     document.querySelectorAll(".lite-mode").forEach(function (container) {
       var preview = container.querySelector(".lite-preview");
       var iframeWrapper = container.querySelector(".iframe-wrapper");
