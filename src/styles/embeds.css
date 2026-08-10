@@ -1,0 +1,12 @@
+/* src/styles/embeds.css */
+/* Centering and rounding for embeds (tweets, videos, etc.) */
+
+astro-embed-tweet,
+lite-youtube,
+astro-bilibili-embed,
+.astro-embed-bilibili {
+  display: block !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border-radius: var(--astro-embed-border-radius, 0.5rem) !important;
+}

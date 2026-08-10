@@ -1,0 +1,8 @@
+/* src/styles/tweet.css */
+/* Center tweet iframes */
+
+astro-embed-tweet > iframe,
+astro-embed-tweet > .twitter-tweet {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}

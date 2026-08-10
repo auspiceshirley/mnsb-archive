@@ -1,0 +1,16 @@
+/* src/styles/lang.css */
+/* Language selector */
+
+starlight-lang-select label {
+  --sl-select-width: 8em !important;
+}
+
+starlight-lang-select select {
+  min-width: 6.8rem !important;
+  padding-right: 1.8rem !important;
+}
+
+starlight-lang-select label:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}

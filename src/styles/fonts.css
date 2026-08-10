@@ -1,0 +1,17 @@
+/* src/styles/fonts.css */
+/* Global base font */
+
+@import "@fontsource/noto-serif";
+@import "@fontsource/noto-serif-sc";
+@import "@fontsource/noto-serif-tc";
+@import "@fontsource/noto-serif-jp";
+@import "@fontsource/noto-serif-kr";
+
+body {
+  font-family:
+    "Noto Serif SC", "Noto Serif TC", "Noto Serif JP", "Noto Serif KR",
+    "Noto Serif", serif !important;
+  font-optical-sizing: auto !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+}

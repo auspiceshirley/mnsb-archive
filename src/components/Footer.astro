@@ -1,0 +1,157 @@
+---
+// src/components/Footer.astro
+import Default from "@astrojs/starlight/components/Footer.astro";
+import ScrollNav from "./ScrollNav.astro";
+import Icon from "./Icon.astro";
+
+const rawLocale = Astro.currentLocale || "zh-hans";
+const currentLocale = rawLocale.toLowerCase();
+const aboutUrl = `/${currentLocale}/about`;
+const privacyUrl = `/${currentLocale}/privacy`;
+const copyrightUrl = `/${currentLocale}/copyright`;
+---
+
+<Default><slot /></Default>
+
+<ScrollNav />
+
+<footer class="custom-footer">
+  <div class="footer-container">
+    <p style="font-weight: bolder;">
+      Magical Girl Witch Trial Unofficial Website
+    </p>
+    <p>Built with ❤️ by Shirley Auspice, for every player.</p>
+    <div class="footer-links-line-1">
+      Powered by <a href="https://astro.build">Astro</a>&<a
+        href="https://starlight.astro.build">Starlight</a
+      >&<a href="https://axiaobo7788.github.io/starlight-material-design-theme/"
+        >Starlight MD3</a
+      >
+      <button
+        type="button"
+        class="footer-cookie-btn"
+        id="open-cookie-preferences"
+      >
+        <span class="status-toggle-icon" aria-label="Toggle Status">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 14">
+            <path
+              fill="#0066FF"
+              fill-rule="evenodd"
+              d="M22.6 0H7.4a7 7 0 1 0 0 14h15.2a7 7 0 0 0 0-14zM1.6 7a5.8 5.8 0 0 1 5.8-5.8h9.9l-3.1 11.6H7.4A5.8 5.8 0 0 1 1.6 7z"
+              clip-rule="evenodd"></path>
+            <path
+              fill="#FFF"
+              d="M24.6 4a.6.6 0 0 1 0 .8L22.5 7l2.2 2.2a.6.6 0 1 1-.8.8L21.7 7.8 19.5 10a.6.6 0 1 1-.8-.8L20.8 7l-2.2-2.2a.6.6 0 1 1 .8-.8l2.2 2.2L23.8 4a.6.6 0 0 1 .8 0z"
+            ></path>
+            <path
+              fill="#0066FF"
+              d="M12.7 4.1a.6.6 0 0 1 .1.8l-4.2 4.9a.6.6 0 0 1-1 0L5.4 7.7a.6.6 0 1 1 .8-.8L8 8.6l3.8-4.5a.6.6 0 0 1 .9-.1z"
+            ></path>
+          </svg>
+        </span>Your privacy choices
+      </button>
+    </div>
+    <div class="footer-links-line-2">
+      <p>
+        © 2026 - {new Date().getFullYear()} Manosaba Archive (Source Code Only, see
+        <a href={copyrightUrl}> Copyright Notice <Icon name="external" /></a> for
+        details.)
+      </p>
+      <a href="https://manosaba.com"
+        >魔法少女ノ魔女裁判 公式サイト <Icon name="external" /></a
+      >
+      <a href={aboutUrl}>About Manosaba Archive <Icon name="external" /></a>
+      <a href="https://me.auspiceshirley.dev"
+        >About Shirley Auspice <Icon name="external" /></a
+      >
+      <a href={privacyUrl}>Privacy <Icon name="external" /></a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+
+    if (
+      target instanceof Element &&
+      target.closest("#open-cookie-preferences")
+    ) {
+      event.preventDefault();
+
+      if (
+        window.CookieConsent &&
+        typeof window.CookieConsent.showPreferences === "function"
+      ) {
+        window.CookieConsent.showPreferences();
+      } else {
+        console.warn("CookieConsent has not yet finished initializing.");
+      }
+    }
+  });
+</script>
+
+<style>
+  .custom-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    text-align: center;
+    color: var(--sl-color-gray-3);
+  }
+
+  .footer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: center;
+    padding: 0 1rem;
+  }
+
+  .footer-links-line-1,
+  .footer-links-line-2 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    line-height: 1.5;
+  }
+
+  .footer-links-line-1 a,
+  .footer-links-line-2 a,
+  .footer-cookie-btn {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .footer-links-line-1 a:hover,
+  .footer-links-line-2 a:hover,
+  .footer-cookie-btn:hover {
+    text-decoration: underline;
+  }
+
+  .footer-cookie-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .status-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+
+  .status-toggle-icon svg {
+    height: 0.85em;
+    width: auto;
+    display: block;
+  }
+</style>

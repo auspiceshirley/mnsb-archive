@@ -1,0 +1,13 @@
+/* src/styles/link-preview.css */
+/* Link preview: image above content */
+
+.link-preview {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+}
+
+.link-preview img,
+.link-preview video,
+.link-preview__content {
+  order: 0 !important;
+}

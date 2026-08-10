@@ -1,0 +1,44 @@
+---
+// src/components/ColorBar.astro
+const colors = [
+  "#fe92b4",
+  "#f25054",
+  "#fd7350",
+  "#8ab4fe",
+  "#aaca1e",
+  "#a193fc",
+  "#68e3eb",
+  "#feb459",
+  "#ecd28f",
+  "#85919a",
+  "#f7ecec",
+  "#bc7def",
+  "#ed4b3c",
+  "#e6bcb4",
+  "#c5d4eb",
+];
+---
+
+<div class="color-bar">
+  {
+    colors.map((color) => (
+      <span class="swatch" style={`background-color: ${color};`} />
+    ))
+  }
+</div>
+
+<style>
+  .color-bar {
+    display: flex;
+    width: 100%;
+    height: 3.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1rem 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+  .swatch {
+    flex: 1;
+    height: 100%;
+  }
+</style>

@@ -1,0 +1,7 @@
+/* src/styles/hide-top.css */
+/* Hide sidebar top-level list */
+
+starlight-sidebar ul.top-level,
+.sidebar-content ul.top-level {
+  display: none !important;
+}

@@ -1,0 +1,53 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# automatically generated symlinks
+
+# bilibili
+src/content/docs/zh-hant/bilibili
+src/content/docs/en/bilibili
+src/content/docs/ja/bilibili
+src/content/docs/ko/bilibili
+
+# pixiv
+src/content/docs/zh-hant/pixiv
+src/content/docs/en/pixiv
+src/content/docs/ja/pixiv
+src/content/docs/ko/pixiv
+
+# twitter
+src/content/docs/zh-hant/twitter
+src/content/docs/en/twitter
+src/content/docs/ja/twitter
+src/content/docs/ko/twitter
+
+# website
+src/content/docs/zh-hant/website
+src/content/docs/en/website
+src/content/docs/ja/website
+src/content/docs/ko/website
+
+# youtube
+src/content/docs/zh-hant/youtube
+src/content/docs/en/youtube
+src/content/docs/ja/youtube
+src/content/docs/ko/youtube

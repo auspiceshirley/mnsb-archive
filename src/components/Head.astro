@@ -1,0 +1,14 @@
+---
+// src/components/Head.astro
+import Default from "@astrojs/starlight/components/Head.astro";
+import CookieConsent from "./CookieConsent.astro";
+import TwitterWidgets from "./TwitterWidgets.astro";
+---
+
+<TwitterWidgets />
+
+<CookieConsent />
+
+<script src="../scripts/external-links.ts"></script>
+
+<Default {...Astro.props}><slot /></Default>

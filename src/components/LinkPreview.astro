@@ -1,0 +1,206 @@
+---
+// src/components/LinkPreview.astro
+import { makeSafeGetter } from "@astro-community/astro-embed-utils";
+import {
+  getAttribute,
+  getTextContent,
+  isElementNode,
+  query,
+  type Element,
+} from "@parse5/tools";
+import { parse } from "parse5";
+
+export interface Props {
+  id: string;
+  hideMedia?: boolean;
+}
+
+const { id, hideMedia = false } = Astro.props;
+
+const urlPattern = /(https:\/\/\S+)/;
+const urlMatcher = (url: string) => url.match(urlPattern)?.[0];
+const urlOrNull = (url: string | null | undefined) =>
+  url?.slice(0, 8) === "https://" ? url : null;
+
+export const safeGetDOM = makeSafeGetter(async (res: Response) => {
+  const document = parse(await res.text());
+  return {
+    getElement: (element: string, attributes: Record<string, string> = {}) => {
+      const attrs = Object.entries(attributes);
+      const el = query(
+        document,
+        (node) =>
+          isElementNode(node) &&
+          node.tagName === element &&
+          attrs.every(([name, value]) =>
+            node.attrs.some(
+              (attr: { name: string; value: string }) =>
+                attr.name === name && attr.value === value,
+            ),
+          ),
+      ) as Element | null;
+      return el
+        ? {
+            getAttribute: (name: string) => getAttribute(el, name),
+            getTextContent: () => getTextContent(el),
+          }
+        : null;
+    },
+  };
+});
+
+async function parseOpenGraph(pageUrl: string) {
+  const matchedUrl = urlMatcher(pageUrl);
+  if (!matchedUrl) return null;
+
+  const html = await safeGetDOM(matchedUrl);
+  if (!html) return null;
+
+  const getMetaProperty = (property: string) =>
+    html.getElement("meta", { property })?.getAttribute("content");
+  const getMetaName = (name: string) =>
+    html.getElement("meta", { name })?.getAttribute("content");
+
+  const title =
+    getMetaProperty("og:title") || html.getElement("title")?.getTextContent();
+  const description =
+    getMetaProperty("og:description") || getMetaName("description");
+  const image = urlOrNull(
+    getMetaProperty("og:image:secure_url") ||
+      getMetaProperty("og:image:url") ||
+      getMetaProperty("og:image"),
+  );
+  const imageAlt = getMetaProperty("og:image:alt");
+  const video = urlOrNull(
+    getMetaProperty("og:video:secure_url") ||
+      getMetaProperty("og:video:url") ||
+      getMetaProperty("og:video"),
+  );
+  const videoType = getMetaProperty("og:video:type");
+  const url =
+    urlOrNull(
+      getMetaProperty("og:url") ||
+        html.getElement("link", { rel: "canonical" })?.getAttribute("href"),
+    ) || matchedUrl;
+
+  return { title, description, image, imageAlt, url, video, videoType };
+}
+
+const meta = await parseOpenGraph(id);
+const domain = meta?.url ? new URL(meta.url).hostname.replace("www.", "") : "";
+---
+
+{
+  meta && meta.title ? (
+    <article
+      class:list={[
+        "link-preview",
+        "astro-embed",
+        {
+          "link-preview--has-video": !hideMedia && meta.video && meta.videoType,
+          "link-preview--no-media":
+            hideMedia || !((meta.video && meta.videoType) || meta.image),
+        },
+      ]}
+    >
+      <div class="link-preview__content">
+        <header>
+          <a class="link-preview__title" href={id}>
+            {meta.title}
+          </a>{" "}
+          {domain && <small class="link-preview__domain">{domain}</small>}
+        </header>
+        <small class="link-preview__description">{meta.description}</small>
+      </div>
+      {hideMedia ? null : meta.video && meta.videoType ? (
+        <div
+          class="link-preview__media-placeholder"
+          data-src-video={meta.video}
+          data-video-type={meta.videoType}
+        >
+          <span class="link-preview__placeholder-text">
+            Image/video previews requires accepting third-party cookies.
+          </span>
+        </div>
+      ) : meta.image ? (
+        <div
+          class="link-preview__media-placeholder"
+          data-src-img={meta.image}
+          data-alt={meta.imageAlt || ""}
+        >
+          <span class="link-preview__placeholder-text">
+            Image preview requires accepting third-party cookies.
+          </span>
+        </div>
+      ) : null}
+    </article>
+  ) : (
+    <div class="link-preview link-preview--no-metadata">
+      <a href={id}>{id}</a>
+    </div>
+  )
+}
+
+<script is:inline src="/scripts/link-preview.js"></script>
+
+<style>
+  .link-preview {
+    --lp-width: var(--link-preview-width, 30em);
+    --lp-pad-x: var(--link-preview-padding-inline, 0);
+    --lp-pad-y: var(--link-preview-padding-block, 0.5em);
+    --lp-corners: var(--link-preview-corners, 0);
+    --lp-desc-lines: var(--link-preview-description-lines, 1);
+
+    position: relative;
+    width: var(--lp-width);
+    max-width: 100%;
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: var(--lp-corners);
+  }
+  .link-preview * {
+    margin: 0 !important;
+  }
+  .link-preview__content {
+    display: flex;
+    flex-direction: column;
+    padding: var(--lp-pad-y) var(--lp-pad-x);
+  }
+  .link-preview header {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .link-preview__description {
+    display: -webkit-box;
+    -webkit-line-clamp: var(--lp-desc-lines);
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .link-preview:not(.link-preview--has-video) a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .link-preview img,
+  .link-preview video,
+  .link-preview__media-placeholder {
+    aspect-ratio: 1200 / 630;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-top-left-radius: var(--lp-corners);
+    border-top-right-radius: var(--lp-corners);
+  }
+  .link-preview__media-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--link-preview-placeholder-bg, rgba(0, 0, 0, 0.05));
+    color: var(--link-preview-placeholder-color, #666);
+    font-size: 0.85em;
+    text-align: center;
+    padding: 1em;
+  }
+</style>

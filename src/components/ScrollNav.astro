@@ -1,0 +1,155 @@
+---
+/* src/components/ScrollNav.astro */
+---
+
+<div class="scroll-nav-container" aria-label="Scroll navigation">
+  <button
+    id="scroll-to-top"
+    class="scroll-btn hidden"
+    title="Scroll to top"
+    aria-label="Scroll to top"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m18 15-6-6-6 6"></path>
+    </svg>
+  </button>
+  <button
+    id="scroll-to-bottom"
+    class="scroll-btn"
+    title="Scroll to bottom"
+    aria-label="Scroll to bottom"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m6 9 6 6 6-6"></path>
+    </svg>
+  </button>
+</div>
+
+<style>
+  .scroll-nav-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .scroll-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border-radius: 50%;
+
+    background-color: var(--sl-color-bg-nav);
+    color: var(--sl-color-gray-3);
+    border: 1px solid var(--sl-color-hairline);
+
+    cursor: pointer;
+    transition:
+      opacity 0.15s ease,
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+  }
+
+  .scroll-btn:hover {
+    color: var(--sl-color-white);
+    background-color: var(--sl-color-gray-5);
+  }
+
+  .scroll-btn:focus,
+  .scroll-btn:focus-visible,
+  .scroll-btn:active {
+    outline: none;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .scroll-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (max-width: 50rem) {
+    .scroll-nav-container {
+      bottom: 1rem;
+      right: 1rem;
+    }
+  }
+</style>
+
+<script>
+  function setupScrollNav() {
+    const topBtn = document.getElementById("scroll-to-top");
+    const bottomBtn = document.getElementById("scroll-to-bottom");
+
+    if (!topBtn || !bottomBtn) return;
+
+    const threshold = 200;
+    const bottomBuffer = 50;
+
+    function updateVisibility() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (scrollTop > threshold) {
+        topBtn?.classList.remove("hidden");
+      } else {
+        topBtn?.classList.add("hidden");
+      }
+
+      if (scrollTop + clientHeight < scrollHeight - bottomBuffer) {
+        bottomBtn?.classList.remove("hidden");
+      } else {
+        bottomBtn?.classList.add("hidden");
+      }
+    }
+
+    topBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    bottomBtn.addEventListener("click", () => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    window.addEventListener("resize", updateVisibility, { passive: true });
+
+    updateVisibility();
+  }
+
+  setupScrollNav();
+  document.addEventListener("astro:page-load", setupScrollNav);
+</script>

@@ -1,0 +1,380 @@
+---
+// src/components/YouTube.astro
+export interface Props {
+  id?: string;
+  title?: string;
+  poster?: string;
+  class?: string;
+  style?: string | Record<string, any>;
+  [key: string]: any;
+}
+
+const {
+  id: rawId,
+  title: propTitle = "YouTube Video Player",
+  poster,
+  class: className = "",
+  style,
+  ...restProps
+} = Astro.props;
+
+function extractVideoId(input?: string): string {
+  if (!input) return "";
+  const str = String(input).trim();
+  const match = str.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/,
+  );
+  if (match) return match[1];
+  if (/^[\w-]{11}$/.test(str)) return str;
+  return "";
+}
+
+const cleanId = extractVideoId(rawId);
+let errorMessage: string | null = null;
+
+if (!rawId || !cleanId) {
+  errorMessage = "Invalid video parameter";
+}
+
+const coverUrl =
+  poster ||
+  (cleanId ? "https://i.ytimg.com/vi/" + cleanId + "/hqdefault.jpg" : "");
+const iframeSrc = cleanId
+  ? "https://www.youtube-nocookie.com/embed/" + cleanId + "?autoplay=0"
+  : "";
+---
+
+<div class="youtube-wrapper">
+  {
+    errorMessage ? (
+      <div
+        class:list={[
+          "astro-embed",
+          "astro-embed-youtube",
+          "error-mode",
+          className,
+        ]}
+        style={style}
+      >
+        <div class="error-container">
+          <div class="error-code">404</div>
+          <div class="error-msg">{errorMessage}</div>
+        </div>
+      </div>
+    ) : (
+      <div
+        class:list={[
+          "astro-embed",
+          "astro-embed-youtube",
+          "lite-mode",
+          className,
+        ]}
+        style={style}
+        data-id={cleanId}
+        data-iframe-src={iframeSrc}
+        data-poster={poster || ""}
+        data-prop-title={propTitle}
+      >
+        <div
+          class="lite-preview"
+          role="button"
+          tabindex="0"
+          aria-label={"Play " + propTitle}
+        >
+          <div class="cover-image" data-src={coverUrl} data-alt={propTitle}>
+            Image preview requires accepting third-party cookies.
+          </div>
+          <div class="gradient-overlay" />
+
+          <div class="info-bottom">
+            <div class="title">{propTitle}</div>
+            <a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="author"
+              style="display: none;"
+              onclick="event.stopPropagation();"
+            >
+              <span class="name" />
+            </a>
+          </div>
+
+          <button class="play-button" aria-label="Play">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="11"
+                fill="#f5f5f5"
+                stroke="#d0d0d0"
+                stroke-width="1"
+              />
+              <path
+                d="M 9.5 7.5 L 16.5 12 L 9.5 16.5 Z"
+                fill="#333333"
+                stroke="none"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="iframe-wrapper" style="display: none;">
+          <iframe
+            src=""
+            title={propTitle}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            loading="lazy"
+            {...restProps}
+          />
+        </div>
+      </div>
+    )
+  }
+</div>
+
+<script is:inline src="/scripts/youtube-embed.js"></script>
+
+<style>
+  .youtube-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin: 1.5rem auto;
+  }
+
+  .astro-embed-youtube {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--link-preview-placeholder-bg, rgba(0, 0, 0, 0.05));
+    overflow: hidden;
+    contain: layout style;
+    height: auto;
+    margin: 0 auto;
+    border-radius: 8px;
+  }
+
+  .astro-embed-youtube.error-mode {
+    cursor: default;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .astro-embed-youtube :global(.error-container) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    user-select: none;
+  }
+
+  .astro-embed-youtube :global(.error-code) {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #71717a;
+    letter-spacing: 0.05em;
+  }
+
+  .astro-embed-youtube :global(.error-msg) {
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+    color: #a1a1aa;
+  }
+
+  .astro-embed-youtube iframe,
+  .lite-mode .iframe-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0;
+    display: block;
+  }
+
+  .lite-mode .lite-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .lite-mode :global(div.cover-image) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--link-preview-placeholder-color, #666);
+    font-size: 0.85rem;
+    background-color: var(--link-preview-placeholder-bg, rgba(0, 0, 0, 0.05));
+  }
+
+  .lite-mode :global(img.cover-image) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none;
+    transition: transform 0.3s ease;
+  }
+
+  .lite-mode .lite-preview:hover :global(.cover-image) {
+    transform: scale(1.03);
+  }
+
+  .lite-mode .gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+    pointer-events: none;
+  }
+
+  .lite-mode .info-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.2rem 1rem 1rem;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    z-index: 1;
+  }
+
+  .lite-mode .title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    margin: 0;
+  }
+
+  .lite-mode .author {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+    width: fit-content;
+  }
+
+  .lite-mode .author:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  .lite-mode .name {
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lite-mode .play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 68px;
+    height: 48px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: transform 0.2s;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    pointer-events: auto;
+  }
+
+  .lite-mode .play-button:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .lite-mode .play-button svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+  }
+
+  .lite-mode .iframe-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 3;
+  }
+
+  @media (max-width: 480px) {
+    .astro-embed-youtube {
+      aspect-ratio: 16 / 9;
+      height: auto;
+    }
+    .error-code {
+      font-size: 2.2rem;
+    }
+    .error-msg {
+      font-size: 0.85rem;
+    }
+    .lite-mode .title {
+      font-size: 0.95rem;
+    }
+    .lite-mode .info-bottom {
+      padding: 0.8rem 0.6rem 0.6rem;
+    }
+    .lite-mode .play-button {
+      width: 56px;
+      height: 40px;
+    }
+    .lite-mode .name {
+      max-width: 120px;
+    }
+  }
+</style>
